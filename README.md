@@ -1,4 +1,4 @@
-# Trabajo Final - Crecimiento Económico - ITAM 2026 I
+# Trabajo Final - Crecimiento Económico - Replicación gráficas la decada perdida 
 
 Replicación numérica de las Figuras 14 y 15 de **Bergoeing, Kehoe, Kehoe y Soto (2002)**, *"A Decade Lost and Found: Mexico and Chile in the 1980s"*, Review of Economic Dynamics 5, 166–205.
 
