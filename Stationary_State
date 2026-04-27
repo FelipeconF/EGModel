@@ -1,0 +1,30 @@
+function [kss, css, Lss] = compute_ss(A_ss, tau_ss, alpha, beta, delta, gamma, Nbar)
+%   Calcula el estado estacionario del modelo de crecimiento neoclasico
+%   con oferta de trabajo endogena y un impuesto al rendimiento neto del
+%   capital, dado un nivel de PTF A_ss y una tasa impositiva tau_ss.
+%
+%   Condiciones de estado estacionario:
+%       (1) Euler:    1 = beta*[1 + (1-tau)*(alpha*A*(k/L)^(alpha-1) - delta)]
+%                  => k/L = ( alpha*A / [(1/beta-1)/(1-tau) + delta] )^(1/(1-alpha))
+%       (2) FOC L:    (1-gamma)*c = gamma*(Nbar-L)*(1-alpha)*A*(k/L)^alpha
+%       (3) Recursos: c = A*k^alpha*L^(1-alpha) - delta*k
+
+% (1) Razon capital/trabajo de estado estacionario
+kL = ( alpha*A_ss / ( (1/beta - 1)/(1-tau_ss) + delta ) )^(1/(1-alpha));
+
+% Salario real y producto medio del capital en estado estacionario
+w  = (1-alpha) * A_ss * kL^alpha;
+y_per_L = A_ss * kL^alpha;        % producto/trabajo
+c_per_L = y_per_L - delta*kL;     % consumo/trabajo (uso (3) dividido por L)
+
+% (2) FOC labor da L:
+%     (1-gamma)*(c_per_L)*L = gamma*(Nbar-L)*w
+%     (1-gamma)*c_per_L*L + gamma*w*L = gamma*w*Nbar
+%     L = gamma*w*Nbar / [ (1-gamma)*c_per_L + gamma*w ]
+Lss = gamma*w*Nbar / ( (1-gamma)*c_per_L + gamma*w );
+
+% Niveles
+kss = kL * Lss;
+css = c_per_L * Lss;
+
+end
