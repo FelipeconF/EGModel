@@ -1,0 +1,21 @@
+function [Y, KY, LN, YN] = compute_aggregates(xt, A, alpha, Nbar, T_obs)
+%   A partir de la solucion del modelo (matriz xt de 3xT con c, k, L),
+%   calcula:
+%       Y(t)    = producto en t
+%       KY(t)   = razon capital/producto
+%       LN(t)   = horas trabajadas / dotacion (corresponde a L/N en datos)
+%       YN(t)   = producto detrended (indice 1980 = 1)
+%   y devuelve solo los primeros T_obs periodos (1980-2000).
+
+c = xt(1, 1:T_obs);
+k = xt(2, 1:T_obs);
+L = xt(3, 1:T_obs);
+
+A_obs = A(1:T_obs);
+
+Y  = A_obs .* k.^alpha .* L.^(1-alpha);   % producto
+KY = k ./ Y;                              % razon K/Y
+LN = L ./ Nbar;                           % razon L/N
+YN = Y ./ Y(1);                           % indice 1980 = 1
+
+end
