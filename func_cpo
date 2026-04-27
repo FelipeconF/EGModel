@@ -1,0 +1,48 @@
+function error = func_cpo(x)
+%   Condiciones de primer orden del modelo de crecimiento neoclasico
+%   con oferta de trabajo endogena y choques exogenos a la PTF y a los
+%   impuestos al capital. Se utiliza para replicar las Figuras 14 y 15 de
+%   Bergoeing, Kehoe, Kehoe y Soto (2002).
+%
+%   Variables endogenas (3 por periodo): c(t), k(t), L(t)
+%
+%   Ecuaciones (3 por periodo):
+%       (1) Euler intertemporal del consumo
+%       (2) FOC intratemporal del trabajo (consumo-ocio)
+%       (3) Restriccion de recursos
+%
+%   Condiciones de frontera:
+%       k(1) = k0  (capital inicial)
+%       k(T) = k(T-1)  (estado estacionario al final)
+%       L(T) = L(T-1)  (estado estacionario al final)
+
+global alpha beta delta gamma Nbar A tau k0 T
+
+c = x(1,:);   % 1xT
+k = x(2,:);   % 1xT
+L = x(3,:);   % 1xT
+
+% ---- Ecuaciones de Euler y FOCs intratemporales (t = 1,...,T-1) ----
+for t = 1:T-1
+
+    % Producto marginal del capital y del trabajo en t+1
+    r_tp1 = alpha * A(t+1) * k(t+1)^(alpha-1) * L(t+1)^(1-alpha);
+    w_t   = (1-alpha) * A(t)   * k(t)^alpha   * L(t)^(-alpha);
+
+    % (1) Euler del consumo: c(t+1) = beta*[1 + (1-tau(t+1))*(r(t+1)-delta)]*c(t)
+    error(1,t) = c(t+1) - beta*(1 + (1-tau(t+1))*(r_tp1 - delta))*c(t);
+
+    % (2) FOC intratemporal: (1-gamma)/gamma * c(t)/(Nbar-L(t)) = w(t)
+    error(2,t) = (1-gamma)*c(t) - gamma*(Nbar - L(t))*w_t;
+
+    % (3) Restriccion de recursos: c(t) + k(t+1) = A(t)*k(t)^alpha*L(t)^(1-alpha) + (1-delta)*k(t)
+    error(3,t) = c(t) - (A(t)*k(t)^alpha * L(t)^(1-alpha) + (1-delta)*k(t) - k(t+1));
+
+end
+
+% ---- Condiciones de frontera (t = T) ----
+error(1,T) = k(1) - k0;          % capital inicial
+error(2,T) = k(T) - k(T-1);      % estado estacionario en T
+error(3,T) = L(T) - L(T-1);      % estado estacionario en T
+
+end
