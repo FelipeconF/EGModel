@@ -15,16 +15,6 @@ Replicación numérica de las Figuras 14 y 15 de **Bergoeing, Kehoe, Kehoe y Sot
 | `figura14_mexico.png` | Figura 14 replicada (México: Base Case y Tax Reform). |
 | `figura15_chile.png` | Figura 15 replicada (Chile: Base Case y Tax Reform). |
 
-## Cómo correr el código
-
-1. Abre MATLAB en el directorio donde están los 4 archivos `.m`.
-2. Ejecuta `Proyecto.m`.
-3. El script:
-   - Imprime el `k0` calibrado para cada país.
-   - Corre `fsolve` 4 veces (México BC, México TR, Chile BC, Chile TR).
-   - Genera las dos figuras (Figura 14 y Figura 15).
-   - Imprime un resumen numérico al final.
-
 ## Nota importante sobre los datos
 
 El script tiene incrustadas series **aproximadas** de PTF (digitalizadas de la Figura 13 del paper) y de las series observadas (Y/N, K/Y, L/N) digitalizadas de las Figuras 14 y 15. Si dispones del archivo `Decade_Lost_and_Found_Data.xls`, puedes reemplazar los arreglos `A_MEX_data` y `A_CHL_data` (líneas 53-60 de `Proyecto.m`) con las series exactas:
