@@ -1,0 +1,389 @@
+%   Trabajo Final - Crecimiento Economico 
+% Felipe Monreal Hernández  208549
+% Regina Nava Hernández     208
+% Sebastian Llerandi Serna  206189
+%
+%   Replicacion de las Figuras 14 y 15 de
+%   Bergoeing, Kehoe, Kehoe y Soto (2002),
+%   "A Decade Lost and Found: Mexico and Chile in the 1980s", Review of Economic Dynamics 5, 166-205.
+%   Modelo de crecimiento neoclasico con oferta de trabajo endogena,choques exogenos a la PTF y reforma tributaria al capital en 1988.
+%   Las series provienen del archivo Decade_Lost_and_Found_Data.xls  
+
+clear all
+clc
+
+global alpha beta delta gamma Nbar A tau k0 T
+
+%% ============================================================
+%   1. PARAMETROS ESTRUCTURALES (Bergoeing et al. 2002, p. 184-188)
+
+alpha = 0.30;     % participacion del capital
+delta = 0.05;     % tasa de depreciacion
+beta  = 0.98;     % factor de descuento
+Nbar  = 1;        % dotacion de tiempo normalizada
+
+% Pesos del consumo en utilidad (BKKS p. 188)
+gamma_MEX = 0.30;
+gamma_CHL = 0.28;
+
+% Tasas impositivas al capital
+tau_pre  = 0.32;  % pre-1988
+tau_post = 0.12;  % post-reforma (BKKS p. 188)
+
+%% ============================================================
+%   2. DATOS DEL ARCHIVO Decade_Lost_and_Found_Data.xls
+%   Años 1980-2000.
+
+years = (1980:2000)';
+
+% --- Detrended TFP, indice 1980 = 100 ---
+% C.39: Mexico (NEW), C.37: Chile (NEW)
+A_MEX_data = [100.000000; 101.835582;  96.670811;  88.196692; ...
+               86.617371;  84.352079;  78.750676;  76.630348; ...
+               73.970805;  73.537589;  73.668613;  72.877339; ...
+               71.492767;  69.933099;  70.743926;  64.485541; ...
+               64.534577;  64.201295;  64.008832;  63.658386; 65.230737];
+
+A_CHL_data = [100.000000; 100.090244;  83.429491;  78.994228; ...
+               80.545556;  80.371816;  79.530626;  80.478250; ...
+               80.045087;  83.215534;  81.859546;  85.135794; ...
+               89.587416;  89.592623;  91.573987;  98.336179; ...
+               98.025900; 100.299816;  98.780750;  96.958052; 98.700700];
+
+% --- Detrended Y/N (working-age, 1980 = 100) ---
+% C.14: Mexico, C.13: Chile
+YN_MEX_obs = [100.00; 102.75;  96.82;  88.66;  87.03;  84.49;  77.63; ...
+               74.94;  72.07;  71.33;  71.23;  70.72;  69.87;  67.95; ...
+               67.71;  60.66;  61.06;  62.43;  62.73;  62.42;  63.96];
+
+YN_CHL_obs = [100.00; 102.33;  84.98;  78.64;  79.98;  79.33;  80.61; ...
+               82.64;  85.28;  90.64;  90.34;  94.02; 101.73; 104.91; ...
+              106.95; 114.20; 118.27; 122.53; 122.90; 117.28; 119.31];
+
+% --- PIB real, miles de millones de pesos de 1995 ---
+% C.2: Mexico, C.1: Chile
+Y_MEX_obs = [141463; 153548; 152693; 147407; 152439; 155798; 150941; ...
+             153563; 155536; 162066; 170280; 177470; 183910; 187497; ...
+             195775; 183702; 193163; 206242; 216327; 224631; 240172];
+
+Y_CHL_obs = [1258946; 1343003; 1162745; 1122177; 1190538; 1231968; ...
+             1300911; 1386697; 1488083; 1645229; 1706063; 1842034; ...
+             2068198; 2212688; 2338993; 2587570; 2779387; 2984762; ...
+             3101979; 3066529; 3231616];
+
+% --- Capital, miles de millones de pesos de 1995 (NEW) ---
+% C.8: Mexico (NEW), C.6: Chile (NEW)
+K_MEX_obs = [234080; 256268; 285261; 313206; 332179; 346186; 358859; ...
+             373320; 382004; 392385; 407856; 424646; 442819; 462079; ...
+             481811; 497091; 514750; 543784; 569935; 594127; 617410];
+
+K_CHL_obs = [2216964; 2314013; 2462476; 2644255; 2643285; 2621199; ...
+             2652354; 2731553; 2840645; 3007061; 3195520; 3449506; ...
+             3705452; 3935594; 4231165; 4606049; 4939382; 5359793; ...
+             5838878; 6359564; 6892439];
+
+% --- Insumo laboral total ---
+% C.10: Chile (NEW), C.12: Mexico (NEW)
+L_CHL_obs = [61548372; 63386083; 66276557; 66534350; 67045999; 69816288; ...
+             71733168; 76199892; 79129138; 84385436; 88011261; 90037305; ...
+             90308556; 94654539; 99065859; 98263600; 97554660; 102747610; ...
+            104049200; 106195600; 102580920];
+
+L_MEX_obs = [13601085; 14110152; 14689988; 15007547; 15189705; 15290734; ...
+             15947520; 17043604; 17607662; 18035910; 18482022; 18482022; ...
+             18482022; 18482022; 18482022; 18482022; 18482022; 18482022; ...
+             18482022; 18482022; 18482022];
+
+% --- Poblacion 15-64 (O.4 Mexico, O.3 Chile) ---
+% 1980-1999 del archivo Excel; 2000 calculado segun la formula del
+% Apendice A de BKKS:  Pop_2000 = Pop_1999 * Pop_1999/Pop_1998
+pop_MEX = [34514160; 35746796; 36982040; 38223252; 39476772; 40747120; ...
+           42122904; 43519260; 44937592; 46379236; 47845464; 49240136; ...
+           50636160; 52039820; 53457640; 54896628; 56224664; 57560144; ...
+           58909968; 60265000];
+pop_MEX = [pop_MEX; pop_MEX(end)*pop_MEX(end)/pop_MEX(end-1)];
+
+pop_CHL = [6792514; 6942682; 7097010; 7255920; 7419788; 7588940; 7733224; ...
+           7882191; 8036026; 8194883; 8358947; 8502825; 8649679; 8797338; ...
+           8943120; 9084331; 9236997; 9386888; 9535270; 9684300];
+pop_CHL = [pop_CHL; pop_CHL(end)*pop_CHL(end)/pop_CHL(end-1)];
+
+% --- Series construidas a partir de los datos ---
+KY_MEX_obs = K_MEX_obs ./ Y_MEX_obs;
+KY_CHL_obs = K_CHL_obs ./ Y_CHL_obs;
+
+% L/N: insumo laboral / (poblacion 15-64 * 100). BKKS Apendice A.
+LN_MEX_obs = L_MEX_obs ./ (pop_MEX * 100);
+LN_CHL_obs = L_CHL_obs ./ (pop_CHL * 100);
+
+% Convertir PTF de indice (1980=100) a niveles relativos a A_1980 = 1
+A_MEX_obs = A_MEX_data / 100;
+A_CHL_obs = A_CHL_data / 100;
+
+%% ============================================================
+%   3. HORIZONTE TEMPORAL
+%  ============================================================
+
+T_obs   = length(years);    % 21 periodos observados (1980-2000)
+T_extra = 100;              % periodos adicionales para alcanzar el EE
+T       = T_obs + T_extra;  % horizonte total
+
+%% ============================================================
+%   4. EXPERIMENTO 1: MEXICO - BASE CASE (sin reforma fiscal)
+%  ============================================================
+
+gamma = gamma_MEX;
+A     = [A_MEX_obs; A_MEX_obs(end)*ones(T_extra,1)];
+A     = A.';                            % vector fila 1xT
+tau   = tau_pre*ones(1,T);              % impuesto constante
+
+% Estado estacionario inicial (1980, A=1, tau pre-reforma) y terminal
+[k0,    c_init, L_init] = compute_ss(1.00, tau_pre, alpha, beta, delta, gamma, Nbar);
+[kss_T, css_T,  Lss_T]  = compute_ss(A(end), tau(end), alpha, beta, delta, gamma, Nbar);
+
+% Semilla: interpolacion lineal del EE inicial al EE final
+ct0 = linspace(c_init, css_T, T);
+kt0 = linspace(k0,     kss_T, T);
+Lt0 = linspace(L_init, Lss_T, T);
+x0  = [ct0; kt0; Lt0];
+x0  = x0(:);                            % vector columna
+
+opts = optimset('Display','off','MaxFunEvals',1e6,'MaxIter',5000, ...
+                'TolFun',1e-9,'TolX',1e-9);
+
+[xt_vec, ~, info_MEX_BC] = fsolve(@func_cpo, x0, opts);
+xt_MEX_BC = reshape(xt_vec, 3, T);
+[YN_MEX_BC, KY_MEX_BC, LN_MEX_BC] = aggregates(xt_MEX_BC, A, alpha, T_obs);
+
+%% ============================================================
+%   5. EXPERIMENTO 2: MEXICO - CON TAX REFORM (reforma 1988)
+%  ============================================================
+
+gamma = gamma_MEX;
+A     = [A_MEX_obs; A_MEX_obs(end)*ones(T_extra,1)];
+A     = A.';
+tau   = [tau_pre*ones(1,8), tau_post*ones(1,T-8)];   % 1988 -> t = 9
+
+[k0,    c_init, L_init] = compute_ss(1.00, tau_pre, alpha, beta, delta, gamma, Nbar);
+[kss_T, css_T,  Lss_T]  = compute_ss(A(end), tau(end), alpha, beta, delta, gamma, Nbar);
+
+ct0 = linspace(c_init, css_T, T);
+kt0 = linspace(k0,     kss_T, T);
+Lt0 = linspace(L_init, Lss_T, T);
+x0  = [ct0; kt0; Lt0]; x0 = x0(:);
+
+[xt_vec, ~, info_MEX_TR] = fsolve(@func_cpo, x0, opts);
+xt_MEX_TR = reshape(xt_vec, 3, T);
+[YN_MEX_TR, KY_MEX_TR, LN_MEX_TR] = aggregates(xt_MEX_TR, A, alpha, T_obs);
+
+%% ============================================================
+%   6. EXPERIMENTO 3: CHILE - BASE CASE (sin reforma fiscal)
+%  ============================================================
+
+gamma = gamma_CHL;
+A     = [A_CHL_obs; A_CHL_obs(end)*ones(T_extra,1)];
+A     = A.';
+tau   = tau_pre*ones(1,T);
+
+[k0,    c_init, L_init] = compute_ss(1.00, tau_pre, alpha, beta, delta, gamma, Nbar);
+[kss_T, css_T,  Lss_T]  = compute_ss(A(end), tau(end), alpha, beta, delta, gamma, Nbar);
+
+ct0 = linspace(c_init, css_T, T);
+kt0 = linspace(k0,     kss_T, T);
+Lt0 = linspace(L_init, Lss_T, T);
+x0  = [ct0; kt0; Lt0]; x0 = x0(:);
+
+[xt_vec, ~, info_CHL_BC] = fsolve(@func_cpo, x0, opts);
+xt_CHL_BC = reshape(xt_vec, 3, T);
+[YN_CHL_BC, KY_CHL_BC, LN_CHL_BC] = aggregates(xt_CHL_BC, A, alpha, T_obs);
+
+%% ============================================================
+%   7. EXPERIMENTO 4: CHILE - TAX REFORM (reforma en 1988)
+%  ============================================================
+
+gamma = gamma_CHL;
+A     = [A_CHL_obs; A_CHL_obs(end)*ones(T_extra,1)];
+A     = A.';
+tau   = [tau_pre*ones(1,8), tau_post*ones(1,T-8)];
+
+[k0,    c_init, L_init] = compute_ss(1.00, tau_pre, alpha, beta, delta, gamma, Nbar);
+[kss_T, css_T,  Lss_T]  = compute_ss(A(end), tau(end), alpha, beta, delta, gamma, Nbar);
+
+ct0 = linspace(c_init, css_T, T);
+kt0 = linspace(k0,     kss_T, T);
+Lt0 = linspace(L_init, Lss_T, T);
+x0  = [ct0; kt0; Lt0]; x0 = x0(:);
+
+[xt_vec, ~, info_CHL_TR] = fsolve(@func_cpo, x0, opts);
+xt_CHL_TR = reshape(xt_vec, 3, T);
+[YN_CHL_TR, KY_CHL_TR, LN_CHL_TR] = aggregates(xt_CHL_TR, A, alpha, T_obs);
+
+%% ============================================================
+%   8. NORMALIZACION DE NIVELES PARA COMPARACION CON DATOS
+%   Las series del modelo (K/Y, L/N) estan en unidades artificiales.
+%   Las reescalamos para que coincidan con los datos en 1980.
+%   Y/N ya esta como indice 1980 = 100, no requiere reescalado.
+%  ============================================================
+
+sf_KY_MEX = KY_MEX_obs(1) / KY_MEX_BC(1);
+sf_KY_CHL = KY_CHL_obs(1) / KY_CHL_BC(1);
+KY_MEX_BC = KY_MEX_BC * sf_KY_MEX;
+KY_MEX_TR = KY_MEX_TR * sf_KY_MEX;
+KY_CHL_BC = KY_CHL_BC * sf_KY_CHL;
+KY_CHL_TR = KY_CHL_TR * sf_KY_CHL;
+
+sf_LN_MEX = LN_MEX_obs(1) / LN_MEX_BC(1);
+sf_LN_CHL = LN_CHL_obs(1) / LN_CHL_BC(1);
+LN_MEX_BC = LN_MEX_BC * sf_LN_MEX;
+LN_MEX_TR = LN_MEX_TR * sf_LN_MEX;
+LN_CHL_BC = LN_CHL_BC * sf_LN_CHL;
+LN_CHL_TR = LN_CHL_TR * sf_LN_CHL;
+
+%% ============================================================
+%   9. GRAFICAS - FIGURA 14 (MEXICO)
+%  ============================================================
+
+figure('Name','Figura 14 - Mexico','NumberTitle','off','Position',[100 100 900 800]);
+
+subplot(3,2,1)
+plot(years, YN_MEX_BC, 'b--', years, YN_MEX_obs, 'k-', 'LineWidth', 2);
+title('Mexico - Base Case');  ylabel('Y/N (detrended)');
+legend('model','data','Location','best'); xlim([1980 2000]); grid on
+
+subplot(3,2,2)
+plot(years, YN_MEX_TR, 'b--', years, YN_MEX_obs, 'k-', 'LineWidth', 2);
+title('Mexico - Tax Reform');  ylabel('Y/N (detrended)');
+legend('model','data','Location','best'); xlim([1980 2000]); grid on
+
+subplot(3,2,3)
+plot(years, KY_MEX_BC, 'b--', years, KY_MEX_obs, 'k-', 'LineWidth', 2);
+ylabel('K/Y'); xlim([1980 2000]); grid on
+
+subplot(3,2,4)
+plot(years, KY_MEX_TR, 'b--', years, KY_MEX_obs, 'k-', 'LineWidth', 2);
+ylabel('K/Y'); xlim([1980 2000]); grid on
+
+subplot(3,2,5)
+plot(years, LN_MEX_BC, 'b--', years, LN_MEX_obs, 'k-', 'LineWidth', 2);
+ylabel('L/N'); xlabel('year'); xlim([1980 2000]); grid on
+
+subplot(3,2,6)
+plot(years, LN_MEX_TR, 'b--', years, LN_MEX_obs, 'k-', 'LineWidth', 2);
+ylabel('L/N'); xlabel('year'); xlim([1980 2000]); grid on
+
+%% ============================================================
+%  10. GRAFICAS - FIGURA 15 (CHILE)
+%  ============================================================
+
+figure('Name','Figura 15 - Chile','NumberTitle','off','Position',[100 100 900 800]);
+
+subplot(3,2,1)
+plot(years, YN_CHL_BC, 'b--', years, YN_CHL_obs, 'k-', 'LineWidth', 2);
+title('Chile - Base Case'); ylabel('Y/N (detrended)');
+legend('model','data','Location','best'); xlim([1980 2000]); grid on
+
+subplot(3,2,2)
+plot(years, YN_CHL_TR, 'b--', years, YN_CHL_obs, 'k-', 'LineWidth', 2);
+title('Chile - Tax Reform'); ylabel('Y/N (detrended)');
+legend('model','data','Location','best'); xlim([1980 2000]); grid on
+
+subplot(3,2,3)
+plot(years, KY_CHL_BC, 'b--', years, KY_CHL_obs, 'k-', 'LineWidth', 2);
+ylabel('K/Y'); xlim([1980 2000]); grid on
+
+subplot(3,2,4)
+plot(years, KY_CHL_TR, 'b--', years, KY_CHL_obs, 'k-', 'LineWidth', 2);
+ylabel('K/Y'); xlim([1980 2000]); grid on
+
+subplot(3,2,5)
+plot(years, LN_CHL_BC, 'b--', years, LN_CHL_obs, 'k-', 'LineWidth', 2);
+ylabel('L/N'); xlabel('year'); xlim([1980 2000]); grid on
+
+subplot(3,2,6)
+plot(years, LN_CHL_TR, 'b--', years, LN_CHL_obs, 'k-', 'LineWidth', 2);
+ylabel('L/N'); xlabel('year'); xlim([1980 2000]); grid on
+
+%% ============================================================
+%  11. RESUMEN
+%  ============================================================
+
+fprintf('\n========================================\n');
+fprintf(' Replicacion Bergoeing et al. (2002)\n');
+fprintf('========================================\n');
+fprintf('Convergencia de fsolve (1 = converged):\n');
+fprintf('  Mex BC: %d   Mex TR: %d   Chl BC: %d   Chl TR: %d\n', ...
+        info_MEX_BC, info_MEX_TR, info_CHL_BC, info_CHL_TR);
+fprintf('\nY/N detrended en el ano 2000:\n');
+fprintf('  Mexico   BC: %6.2f   TR: %6.2f   Datos: %6.2f\n', ...
+        YN_MEX_BC(end), YN_MEX_TR(end), YN_MEX_obs(end));
+fprintf('  Chile    BC: %6.2f   TR: %6.2f   Datos: %6.2f\n', ...
+        YN_CHL_BC(end), YN_CHL_TR(end), YN_CHL_obs(end));
+fprintf('\nK/Y promedio 1995-2000:\n');
+fprintf('  Mexico   BC: %.2f   TR: %.2f   Datos: %.2f\n', ...
+        mean(KY_MEX_BC(end-5:end)), mean(KY_MEX_TR(end-5:end)), mean(KY_MEX_obs(end-5:end)));
+fprintf('  Chile    BC: %.2f   TR: %.2f   Datos: %.2f\n', ...
+        mean(KY_CHL_BC(end-5:end)), mean(KY_CHL_TR(end-5:end)), mean(KY_CHL_obs(end-5:end)));
+fprintf('========================================\n\n');
+
+
+%% ============================================================
+%  FUNCIONES LOCALES
+%  ============================================================
+
+function err = func_cpo(x_in)
+%   Sistema de condiciones de primer orden del modelo neoclasico.
+
+global alpha beta delta gamma Nbar A tau k0 T
+
+x = reshape(x_in, 3, T);
+c = x(1,:);
+k = x(2,:);
+L = x(3,:);
+
+err = zeros(3, T);
+
+for t = 1:T-1
+    r_tp1 = alpha     * A(t+1) * k(t+1)^(alpha-1) * L(t+1)^(1-alpha);
+    w_t   = (1-alpha) * A(t)   * k(t)^alpha       * L(t)^(-alpha);
+
+    err(1,t) = c(t+1) - beta*(1 + (1-tau(t+1))*(r_tp1 - delta))*c(t);
+    err(2,t) = (1-gamma)*c(t) - gamma*(Nbar - L(t))*w_t;
+    err(3,t) = c(t) - (A(t)*k(t)^alpha * L(t)^(1-alpha) ...
+                      + (1-delta)*k(t) - k(t+1));
+end
+
+err(1,T) = k(1)  - k0;
+err(2,T) = k(T)  - k(T-1);
+err(3,T) = L(T)  - L(T-1);
+
+err = err(:);
+end
+
+
+function [kss, css, Lss] = compute_ss(A_ss, tau_ss, alpha, beta, delta, gamma, Nbar)
+%   Estado estacionario del modelo dado A_ss y tau_ss.
+
+kL = ( alpha*A_ss / ( (1/beta - 1)/(1-tau_ss) + delta ) )^(1/(1-alpha));
+w  = (1-alpha) * A_ss * kL^alpha;
+y_per_L = A_ss * kL^alpha;
+c_per_L = y_per_L - delta*kL;
+
+Lss = gamma*w*Nbar / ( (1-gamma)*c_per_L + gamma*w );
+kss = kL * Lss;
+css = c_per_L * Lss;
+end
+
+
+function [YN, KY, LN] = aggregates(xt, A, alpha, T_obs)
+%   Series Y/N (indice 1980=100), K/Y y L/N a partir de la solucion.
+
+c = xt(1, 1:T_obs);
+k = xt(2, 1:T_obs);
+L = xt(3, 1:T_obs);
+A_obs = A(1:T_obs);
+
+Y  = A_obs .* k.^alpha .* L.^(1-alpha);
+YN = (Y / Y(1) * 100).';
+KY = (k ./ Y).';
+LN = L.';
+end
