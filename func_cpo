@@ -4,7 +4,7 @@ function error = func_cpo(x)
 %   impuestos al capital. Se utiliza para replicar las Figuras 14 y 15 de
 %   Bergoeing, Kehoe, Kehoe y Soto (2002).
 %
-%   Variables endogenas (3 por periodo): c(t), k(t), L(t)
+%   Variables endogenas: C(t), k(t), L(t). C/es un consumo por persona 
 %
 %   Ecuaciones (3 por periodo):
 %       (1) Euler intertemporal del consumo
